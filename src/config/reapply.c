@@ -439,6 +439,34 @@ bool tag_rule_matches_monitor(const ConfigTagRule *tr, Monitor *m) {
 	return true;
 }
 
+// Is this tag allowed to be viewed on monitor m?
+// A tag is pinned to specific monitor(s) when any tag_rule for it sets a
+// monitor_* constraint. If such a rule exists and none of them match m,
+// the tag does not belong on that monitor. Unpinned tags are allowed
+// everywhere (eg the special workspace, id:0).
+bool tag_allowed_on_monitor(const Monitor *m, uint32_t tag) {
+	int32_t i;
+	bool has_constraint = false;
+
+	for (i = 0; i < config.tag_rules_count; i++) {
+		const ConfigTagRule *tr = &config.tag_rules[i];
+
+		if (!tr->id_wildcard && tr->id != (int32_t)tag)
+			continue;
+
+		if (tr->monitor_name || tr->monitor_make ||
+			tr->monitor_model || tr->monitor_serial) {
+			has_constraint = true;
+			if (tag_rule_matches_monitor(tr, m))
+				return true;
+		}
+	}
+	/* constrained by tag rules but none matches this monitor */
+	if (has_constraint)
+		return false;
+	return true;
+}
+
 // Apply one tag rule to a slot (caller checks coverage).
 void tag_rule_apply_to_slot(Monitor *m, const ConfigTagRule *tr, uint32_t tag) {
 	int32_t jk;

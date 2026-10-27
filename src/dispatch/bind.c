@@ -47,9 +47,14 @@ int32_t bind_to_view(const Arg *arg) {
 		(target & TAGMASK) ==
 			(server.selected_monitor
 				 ->tagset[server.selected_monitor->seltags])) {
-		if (server.selected_monitor->pertag->prevtag)
-			target = 1 << (server.selected_monitor->pertag->prevtag - 1);
-		else
+		if (server.selected_monitor->pertag->prevtag) {
+			if (tag_allowed_on_monitor(server.selected_monitor,
+									server.selected_monitor->pertag->prevtag))
+				target = 1 << (server.selected_monitor->pertag->prevtag - 1);
+			else
+				return 0; /* unchanged tag with no valid previous tag on this
+							  monitor: no-op */
+		} else
 			// prevtag==0: previous view was the special workspace,
 			// decide by the other tagset
 			target = (server.selected_monitor
@@ -2214,9 +2219,16 @@ int32_t view_cross_monitor(const Arg *arg) {
 		server.selected_monitor->pertag->curtag &&
 		(a.ui & TAGMASK) ==
 			(server.selected_monitor->tagset[server.selected_monitor->seltags])) {
-		if (server.selected_monitor->pertag->prevtag)
-			a.ui = 1 << (server.selected_monitor->pertag->prevtag - 1);
-		else if (server.selected_monitor->tagset[server.selected_monitor->seltags ^ 1] &
+		if (server.selected_monitor->pertag->prevtag) {
+			/* only flip to a tag this monitor is allowed to own (tag rules may
+			 * pin tags to specific monitors; the boot default prevtag=1 must not
+			 * leak a foreign tag onto a pinned monitor) */
+			if (tag_allowed_on_monitor(server.selected_monitor,
+									server.selected_monitor->pertag->prevtag))
+				a.ui = 1 << (server.selected_monitor->pertag->prevtag - 1);
+			else
+				return 0;
+		} else if (server.selected_monitor->tagset[server.selected_monitor->seltags ^ 1] &
 					TAG0_MASK)
 			/* prevtag==0 with the special flag set: previous view was the
 			 * special workspace -- flip back to it */
