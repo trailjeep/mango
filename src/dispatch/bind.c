@@ -2216,9 +2216,15 @@ int32_t view_cross_monitor(const Arg *arg) {
 			(server.selected_monitor->tagset[server.selected_monitor->seltags])) {
 		if (server.selected_monitor->pertag->prevtag)
 			a.ui = 1 << (server.selected_monitor->pertag->prevtag - 1);
+		else if (server.selected_monitor->tagset[server.selected_monitor->seltags ^ 1] &
+					TAG0_MASK)
+			/* prevtag==0 with the special flag set: previous view was the
+			 * special workspace -- flip back to it */
+			a.ui = TAG0_MASK;
 		else
-			a.ui = (server.selected_monitor->tagset[server.selected_monitor->seltags ^ 1] & TAG0_MASK)
-				? TAG0_MASK : 0;
+			/* prevtag==0 with no special flag: monitor was never switched to a
+			 * different tag before -- pressing the current tag again is a no-op */
+			return 0;
 	}
 
 	client_view_on_monitor(&a, true, server.selected_monitor, true);
