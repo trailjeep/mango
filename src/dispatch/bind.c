@@ -2202,7 +2202,20 @@ int32_t view_cross_monitor(const Arg *arg) {
 		return 0;
 
 	focus_monitor(&(Arg){.v = arg->v, .i = UNDIR});
-	client_view_on_monitor(arg, true, server.selected_monitor, true);
+	Arg a = *arg;
+
+	if (config.view_current_to_back &&
+		server.selected_monitor->pertag->curtag &&
+		(a.ui & TAGMASK) ==
+			(server.selected_monitor->tagset[server.selected_monitor->seltags])) {
+		if (server.selected_monitor->pertag->prevtag)
+			a.ui = 1 << (server.selected_monitor->pertag->prevtag - 1);
+		else
+			a.ui = (server.selected_monitor->tagset[server.selected_monitor->seltags ^ 1] & TAG0_MASK)
+				? TAG0_MASK : 0;
+	}
+
+	client_view_on_monitor(&a, true, server.selected_monitor, true);
 	return 0;
 }
 
