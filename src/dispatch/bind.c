@@ -2198,13 +2198,19 @@ int32_t viewnext_have_client(const Arg *arg) {
 }
 
 int32_t view_cross_monitor(const Arg *arg) {
+	Monitor *before = NULL;
+
 	if (!server.selected_monitor)
 		return 0;
 
+	before = server.selected_monitor;
 	focus_monitor(&(Arg){.v = arg->v, .i = UNDIR});
-	Arg a = *arg;
 
-	if (config.view_current_to_back &&
+	/* view_current_to_back only applies when the target monitor was already
+	 * selected before the key press. Arriving from another monitor must land
+	 * on the requested tag, not flip to the target monitor's previous tag. */
+	Arg a = *arg;
+	if (server.selected_monitor == before && config.view_current_to_back &&
 		server.selected_monitor->pertag->curtag &&
 		(a.ui & TAGMASK) ==
 			(server.selected_monitor->tagset[server.selected_monitor->seltags])) {
